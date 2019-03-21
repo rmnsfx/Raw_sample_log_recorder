@@ -1,0 +1,7 @@
+﻿  Validating sources
+  Copying sources remotely to '192.168.5.133'
+  Validating architecture
+  Starting remote build
+  Compiling sources:
+  Linking objects
+  raw_sample_from_484.vcxproj -> D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\bin\ARM\Release\raw_sample_from_484.out

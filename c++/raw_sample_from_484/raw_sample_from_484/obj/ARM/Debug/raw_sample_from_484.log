@@ -1,0 +1,11 @@
+﻿  Validating sources
+  Copying sources remotely to '192.168.5.133'
+  Validating architecture
+  Starting remote build
+  Compiling sources:
+  main.cpp
+D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\main.cpp(86,21): warning : comparison between signed and unsigned integer expressions [-Wsign-compare]
+D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\main.cpp(86,21): warning :    for (int i = 0; i < big_buffer.size(); i++)
+D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\main.cpp(86,21): warning :                      ^
+  Linking objects
+  raw_sample_from_484.vcxproj -> D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\bin\ARM\Debug\raw_sample_from_484.out

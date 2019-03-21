@@ -1,0 +1,1 @@
+g++ -o "/home/pi/projects/raw_sample_from_484/bin/ARM/Release/raw_sample_from_484.out" -Wl,--no-undefined -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack -lpthread /home/pi/projects/raw_sample_from_484/obj/ARM/Release/main.o
