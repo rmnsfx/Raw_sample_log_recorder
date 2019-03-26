@@ -4,8 +4,8 @@
   Starting remote build
   Compiling sources:
   main.cpp
-D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\main.cpp(86,21): warning : comparison between signed and unsigned integer expressions [-Wsign-compare]
-D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\main.cpp(86,21): warning :    for (int i = 0; i < big_buffer.size(); i++)
-D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\main.cpp(86,21): warning :                      ^
+D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\main.cpp(139,12): warning : unused variable ‘write_thread’ [-Wunused-variable]
+D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\main.cpp(139,12): warning :   pthread_t write_thread;
+D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\main.cpp(139,12): warning :             ^
   Linking objects
   raw_sample_from_484.vcxproj -> D:\Repos\raw_sample_log_recorder\c++\raw_sample_from_484\raw_sample_from_484\bin\ARM\Debug\raw_sample_from_484.out
