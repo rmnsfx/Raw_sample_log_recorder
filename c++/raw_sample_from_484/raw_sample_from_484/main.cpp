@@ -20,6 +20,8 @@
 #include <sys/time.h>
 #include <sys/ioctl.h>
 
+#include "serial.h"
+#include <bcm2835.h>
 
 
 struct pack_points_signals
@@ -34,7 +36,7 @@ struct pack_return_signals
 	uint16_t count_point;        //2,3
 	
 	pack_points_signals data;    //4..3076
-} __attribute__((packed)); 
+} __attribute__((packed));
 
 
 struct processed_data
@@ -50,8 +52,12 @@ struct processed_data
 
 
 int result = 0;
-uint8_t buffer[] = { 0x07, 0x6E, 0x82, 0x6C };
-uint8_t read_buffer[3078];
+//uint8_t write_buffer[] = { 0x07, 0x6E, 0x82, 0x6C };
+uint8_t write_buffer[] = { 0x04, 0x6E, 0x82, 0x9C };
+//uint8_t buffer[] = { 0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x0A };
+//uint8_t buffer[] = { 0x01, 0x03, 0x02, 0x03, 0x22, 0x38, 0xAD };
+uint8_t read_buffer[5000];
+
 std::vector<processed_data> big_buffer;
 
 
@@ -134,163 +140,114 @@ time_t curtime;
 
 
 
+
+
 int main()
 {
 	pthread_t write_thread;
 
-	timeout.tv_sec = 1;
-	timeout.tv_usec = 0;
-
-
-
-	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		
-		printf("\n Socket creation error \n");
-		//return -1;
-	}
-	else
-	{
-		printf("\n Socket create %d\n", sock);
-	}
-
-	
-
-	if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
-	{
-		printf("\n setsockopt failed \n");
-	}
-
-	if (setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
-	{
-		printf("\n setsockopt failed \n");
-	}
-
-	//result = ioctl(sock, FIONBIO, 0); 
-
-	
-	serv_addr.sin_addr.s_addr = inet_addr(address);
-
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(750);
-
-
-	result = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-	if (result < 0)
-	{
-		printf("\nConnection Failed: %d\n", result);
-
-	}
-
+	//timeout.tv_sec = 1;
+	//timeout.tv_usec = 0;
 
 	char file_name[30];
 	char buf[30];
+	int fd;
+
+
+	fd = openPort("/dev/serial0", B921600);
+
+
+	uint64_t te = 0;
+
+
 	gettimeofday(&tv, NULL);
 	curtime = tv.tv_sec;
 	strftime(buf, 30, "%Y-%m-%d %T", localtime(&curtime));
 	std::sprintf(file_name, "%s.csv", buf);
 	//myfile.open(file_name, std::ios_base::app); //append to file
 	myfile.open(file_name);
-	fd_set set;
-	FD_ZERO(&set); /* clear the set */
-	FD_SET(sock, &set); /* add our file descriptor to the set */
+	//fd_set set;
+	//FD_ZERO(&set); /* clear the set */
+	//FD_SET(sock, &set); /* add our file descriptor to the set */
+
+	bcm2835_init();
+	bcm2835_gpio_fsel(RPI_V2_GPIO_P1_38, BCM2835_GPIO_FSEL_OUTP);
+	bcm2835_gpio_fsel(RPI_V2_GPIO_P1_40, BCM2835_GPIO_FSEL_OUTP);
+
 
 	while (1)
 	{
 
-			result = send(sock, buffer, sizeof(buffer), 0);
-			result = read(sock, &read_buffer, sizeof(read_buffer));
-			//result = select(sock + 1, &set, NULL, NULL, &timeout);
-
+		bcm2835_gpio_write(RPI_V2_GPIO_P1_38, HIGH); //DE(Driver Enable - разрешение работы передатчика)
+		bcm2835_gpio_write(RPI_V2_GPIO_P1_40, LOW); //~RE (Receiver Enable - разрешение работы приёмника) 						
 		
-			if (result > 0)
+		
+		result = sendData(fd, write_buffer, sizeof(write_buffer));		
+		printf("send %d \n", result);
+
+
+		bcm2835_gpio_write(RPI_V2_GPIO_P1_38, LOW);
+		bcm2835_gpio_write(RPI_V2_GPIO_P1_40, HIGH);
+		
+		
+		usleep(500000);
+		result = readData(fd, read_buffer, 3078, 300000);
+		
+
+		for (int i = 0; i < 4; i++)
+		{
+			printf("%00X ", read_buffer[i]);
+		}
+		
+
+		if (result > 0)
+		{
+
+
+			pack_return_signals* pack = (pack_return_signals*)&read_buffer;
+
+			int count_point = pack->count_point > 1000 ? 0 : pack->count_point;						
+
+			pack_points_signals* point = (pack_points_signals*)&pack->data;
+
+			while (count_point-- > 0)
 			{
-				
 
-				pack_return_signals* pack = (pack_return_signals*)&read_buffer;
-
-				int count_point = pack->count_point > 1000 ? 0 : pack->count_point;
-
-				pack_points_signals* point = (pack_points_signals*)&pack->data;
-
-				while (count_point-- > 0)
-				{
-
-					xx = (int32_t)((point->data & 0x1FFFFF));
-					yy = (int32_t)((point->data >> 21) & (0x1FFFFF));
-					zz = (int32_t)((point->data >> 42) & (0x1FFFFF));
+				xx = (int32_t)((point->data & 0x1FFFFF));
+				yy = (int32_t)((point->data >> 21) & (0x1FFFFF));
+				zz = (int32_t)((point->data >> 42) & (0x1FFFFF));
 
 
-
-					xx = xx > 0xFFFFF ? xx - 0x200000 : xx;
-					yy = yy > 0xFFFFF ? yy - 0x200000 : yy;
-					zz = zz > 0xFFFFF ? zz - 0x200000 : zz;
-
-
-
-					//ready_data.x = xx;
-					//ready_data.y = yy;
-					//ready_data.z = zz;
-
-					point++;
-
-					//printf("%d %d %d\n", xx, yy, zz);
-
-
-					//g_lock.lock();
-					//if (big_buffer.size() > 5000) big_buffer.erase(big_buffer.begin());
-					//big_buffer.push_back(ready_data);				
-					//if (count_point == 0) ready_to_write = true;
-
-
-
-					gettimeofday(&tv, NULL);
-					curtime = tv.tv_sec;
-					strftime(buf, 30, "%Y-%m-%d %T.", localtime(&curtime));
-
-					myfile << buf << tv.tv_usec << ";" << xx << ";" << yy << ";" << zz << std::endl;
+				xx = xx > 0xFFFFF ? xx - 0x200000 : xx;
+				yy = yy > 0xFFFFF ? yy - 0x200000 : yy;
+				zz = zz > 0xFFFFF ? zz - 0x200000 : zz;
 
 
 
 
+				gettimeofday(&tv, NULL);
+				curtime = tv.tv_sec;
+				strftime(buf, 30, "%Y-%m-%d %T.", localtime(&curtime));
 
-					//g_lock.unlock();
-
-
-					//printf("write %d\n", big_buffer.size());
-
-
-
+				myfile << buf << tv.tv_usec << ";" << xx << ";" << yy << ";" << zz << std::endl;
+				//myfile << te++ << ";" << xx << ";" << yy << ";" << zz << std::endl;
 
 
-
-				//g_lock.unlock();
-
-				}
-
-				//if (ready_to_write == true)
-				//{
-				//	pthread_create(&write_thread, NULL, write_to_file, &big_buffer);
-				//}
-
-
-
-
-
-				printf("result %d\n", result);
-
-
-
-
-
-				//printf("%d\n", big_buffer.size());
-
-
-				//usleep(10000);					
+				point++;
 			}
+
+
+
+		}
+
+		//printf("%d %d %d\n", xx, yy, zz);
+		//printf("result %d \n", result);
+
+		//usleep(4000);
+		
 	}
 
 
-	
-    return 0;
+	bcm2835_close();
+	return 0;
 }
