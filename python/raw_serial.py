@@ -11,6 +11,7 @@ import struct
 import socket
 import RPi.GPIO as GPIO
 import time
+import threading
 
 class Value:
     x_val = 0
@@ -31,38 +32,35 @@ if __name__ == "__main__":
     #timeout = None (wait forever)
     #timeout = 0 (Non-blocking)
 
-    ser = serial.Serial('/dev/serial0', 921600, timeout=3) 
-
-    readOut = 0   #chars waiting from laser range finder
+    ser = serial.Serial('/dev/serial0', 921600, timeout=1) 
 
     print ("Starting up")
     
-    f = open('/home/data.csv', 'a')
+    f = open('/home/data.csv', 'a')    
     
-    t = 0
-
+    
     while True:
         
         readOut = ''
         #ser.flush() #flush the buffer
         ser.flushInput()
         
-        
         dt1 = datetime.datetime.now()
+        
         GPIO.output(LED, GPIO.HIGH)
         GPIO.output(LED21, GPIO.HIGH)
         ser.write(serial.to_bytes([0x04, 0x6E, 0x82, 0x9C]))
-        print ("Writing")               
+                      
                 
         GPIO.output(LED, GPIO.LOW)                 
         GPIO.output(LED21, GPIO.LOW)
         
         #size = ser.inWaiting()
         
-        readOut = ser.read(3078)               
-        dt2 = datetime.datetime.now()          
+        readOut = ser.read(3078)            
         
-        print(dt2 - dt1)
+        dt2 = datetime.datetime.now()        
+        # print(dt2 - dt1)
          
         new_value = Value()         
         signal_data = []
@@ -83,16 +81,15 @@ if __name__ == "__main__":
             for point in result:                
                 
                 
-                f.write(str(dt2));
-                
+                f.write(str(dt2));                
                 # f.write(str("{0}-{1}-{2} {3}:{4}:{5}.{6}".format(dt1.strftime("%Y"), dt1.strftime("%m"), dt1.strftime("%d"), dt1.strftime("%H"), dt1.strftime("%M"), dt1.strftime("%S"), t)))                
                 #f.write(str("{0}-{1}-{2} {3}:{4}:{5}:{6}".format(dt1.year, datetime.date.today().strftime("%m"), dt1.day, dt1.hour, dt1.minute, dt1.second, t)))                
                 #f.write(str("{}-{}-{} {}:{}:{}".format(dt1.year, dt1.month, dt1.day, dt1.hour, dt1.minute, dt1.second)))                
                 #f.write(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))                
                 f.write(str(';'))
                 
-                dt2 += datetime.timedelta(microseconds=150)
-                # print(dt1)
+                dt2 += datetime.timedelta(microseconds=157)
+                
                 
                 x = point & 0x1FFFFF                
                 
@@ -125,7 +122,7 @@ if __name__ == "__main__":
             # time.sleep(0.1)
             #pass
         
-        
+
         
         
         
